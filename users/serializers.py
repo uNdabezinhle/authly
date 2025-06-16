@@ -9,65 +9,60 @@ from phonenumber_field.serializerfields import PhoneNumberField
 from .models import User, TwoFactorDevice, RefreshToken as UserRefreshToken
 
 class UserSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the User model with all fields.
-    """
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
+
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'first_name', 'last_name', 'phone_number',
-            'date_joined', 'last_login', 'is_active', 'is_staff', 'two_factor_enabled',
-            'bio', 'profile_picture', 'email_verified', 'phone_verified'
+            'id', 'tenant', 'email', 'username', 'first_name', 'last_name',
+            'is_active', 'is_staff', 'date_joined'
         ]
-        read_only_fields = ['id', 'date_joined', 'last_login', 'is_staff', 'two_factor_enabled', 
-                           'email_verified', 'phone_verified']
 
 class UserCreateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for creating a new user.
-    """
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
+    password = serializers.CharField(write_only=True)
+
     class Meta:
         model = User
-        fields = ['email', 'username', 'first_name', 'last_name', 'phone_number', 'password', 'confirm_password']
-    
-    def validate(self, attrs):
-        # Check that passwords match
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({"confirm_password": _("Passwords do not match.")})
-        
-        return attrs
-    
+        fields = [
+            'id', 'tenant', 'email', 'username', 'first_name', 'last_name',
+            'password'
+        ]
+
     def create(self, validated_data):
-        # Remove confirm_password from the data
-        validated_data.pop('confirm_password', None)
-        
-        # Create user with password
         password = validated_data.pop('password')
-        user = User.objects.create(**validated_data)
+        user = User(**validated_data)
         user.set_password(password)
-        
-        # Record password change information
-        user.password_changed_at = timezone.now()
-        user.set_password_expiry()  # Set password expiry with default policy
-        
-        # Save the user with updated fields
         user.save()
-        
-        # Add password to history
-        user.add_to_password_history(user.password)
-        
         return user
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating an existing user.
-    """
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
+
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'phone_number', 'bio', 'profile_picture']
+        fields = [
+            'id', 'tenant', 'email', 'username', 'first_name', 'last_name',
+            'is_active', 'is_staff'
+        ]
+
+class TwoFactorDeviceSerializer(serializers.ModelSerializer):
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
+
+    class Meta:
+        model = TwoFactorDevice
+        fields = [
+            'id', 'tenant', 'user', 'name', 'type', 'is_active', 'created_at'
+        ]
+
+class RefreshTokenSerializer(serializers.ModelSerializer):
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
+
+    class Meta:
+        model = UserRefreshToken
+        fields = [
+            'id', 'tenant', 'user', 'token', 'created_at', 'expires_at', 'revoked_at'
+        ]
 
 class PasswordChangeSerializer(serializers.Serializer):
     """
@@ -525,4 +520,30 @@ class TwoFactorConfirmSerializer(serializers.Serializer):
     code = serializers.CharField(required=True, min_length=6, max_length=6)
     
     def validate(self, attrs):
-        user = self
+        user = self.context['request'].user
+        
+        # Check if user has 2FA enabled
+        if not user.two_factor_enabled:
+            raise serializers.ValidationError(_("Two-factor authentication is not enabled."))
+        
+        # Get the user's 2FA device
+        device = TwoFactorDevice.objects.filter(user=user, is_active=True, type='totp').first()
+        if not device:
+            raise serializers.ValidationError(_("No active two-factor authentication device found."))
+        
+        # Verify the code
+        import pyotp
+        totp = pyotp.TOTP(device.secret)
+        if not totp.verify(attrs['code']):
+            raise serializers.ValidationError(_("Invalid verification code."))
+        
+        return attrs
+    
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        
+        # Mark the 2FA setup as complete
+        user.two_factor_setup_complete = True
+        user.save(update_fields=['two_factor_setup_complete'])
+        
+        return user

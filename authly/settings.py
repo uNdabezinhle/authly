@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'api_keys',
     'audit',
     'sso',
+    'tenants'
 ]
 
 MIDDLEWARE = [

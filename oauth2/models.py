@@ -6,6 +6,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from tenants.models import Tenant  # Add this import
 
 User = get_user_model()
 
@@ -41,6 +42,14 @@ class OAuth2Client(models.Model):
         on_delete=models.CASCADE, 
         related_name='oauth2_clients',
         verbose_name=_('user')
+    )
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='oauth2_clients',
+        null=True,  # Set to True if some clients may not be tenant-specific
+        blank=True,
+        verbose_name=_('tenant')
     )
     
     # Redirection settings
@@ -117,6 +126,14 @@ class OAuth2AuthorizationCode(models.Model):
         related_name='oauth2_authorization_codes',
         verbose_name=_('user')
     )
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='oauth2_authorization_codes',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
     
     # Authorization details
     redirect_uri = models.CharField(_('redirect URI'), max_length=2000)
@@ -192,6 +209,14 @@ class OAuth2Token(models.Model):
         on_delete=models.CASCADE, 
         related_name='oauth2_tokens',
         verbose_name=_('user')
+    )
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='oauth2_tokens',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
     )
     
     # Token details

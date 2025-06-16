@@ -7,9 +7,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.utils.translation import gettext_lazy as _
 from django.shortcuts import get_object_or_404
 
-from users.models import User
-from users.serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer
+from users.models import User,  TwoFactorDevice, RefreshToken
+from users.serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer, TwoFactorDeviceSerializer, RefreshTokenSerializer
 from roles.models import Role, UserRole
+
+from rest_framework import viewsets
+
 
 class IsAdminOrSelf(permissions.BasePermission):
     """
@@ -212,3 +215,55 @@ class UserViewSet(viewsets.ModelViewSet):
                 {'detail': _('Role is not assigned to this user.')},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = User.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserCreateSerializer
+        elif self.action in ['update', 'partial_update']:
+            return UserUpdateSerializer
+        return UserSerializer
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
+
+class TwoFactorDeviceViewSet(viewsets.ModelViewSet):
+    queryset = TwoFactorDevice.objects.all()
+    serializer_class = TwoFactorDeviceSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = TwoFactorDevice.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
+
+class RefreshTokenViewSet(viewsets.ModelViewSet):
+    queryset = RefreshToken.objects.all()
+    serializer_class = RefreshTokenSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = RefreshToken.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)

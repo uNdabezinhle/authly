@@ -6,6 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from tenants.models import Tenant 
 
 User = get_user_model()
 
@@ -126,6 +127,15 @@ class AuditLog(models.Model):
     hash = models.CharField(_('hash'), max_length=128, blank=True, editable=False)
     previous_hash = models.CharField(_('previous hash'), max_length=128, blank=True, editable=False)
     
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='audit_logs',
+        null=True,  # Set to True if some logs may not be tenant-specific
+        blank=True,
+        verbose_name=_('tenant')
+    )
+
     class Meta:
         verbose_name = _('audit log')
         verbose_name_plural = _('audit logs')
@@ -136,6 +146,8 @@ class AuditLog(models.Model):
             models.Index(fields=['event_type']),
             models.Index(fields=['category']),
             models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['hash']),
+            models.Index(fields=['previous_hash']),
         ]
     
     def __str__(self):
@@ -154,8 +166,8 @@ class AuditLog(models.Model):
         import hashlib
         import json
         
-        # Get the previous log entry to chain hashes
-        previous_log = AuditLog.objects.order_by('-timestamp').first()
+        # Chain hashes per tenant
+        previous_log = AuditLog.objects.filter(tenant=self.tenant).order_by('-timestamp').first()
         if previous_log:
             self.previous_hash = previous_log.hash
         

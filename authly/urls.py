@@ -24,6 +24,9 @@ urlpatterns = [
     
     # SSO endpoints (new)
     path('api/sso/', include('sso.urls')),
+
+    # Multi-tenancy endpoints
+    path('api/tenants/', include('tenants.urls')),
     
     # API documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

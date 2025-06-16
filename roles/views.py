@@ -56,11 +56,30 @@ class HasPermissionManagementPermission(permissions.BasePermission):
         
         return user_roles.exists()
 
+class PermissionViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for Permission CRUD operations.
+    """
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = Permission.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
+
 class RoleViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Role CRUD operations.
     """
     queryset = Role.objects.all()
+    serializer_class = RoleSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_system_role']
     search_fields = ['name', 'description']
@@ -78,6 +97,17 @@ class RoleViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), HasRoleManagementPermission()]
+    
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = Role.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
     
     def perform_destroy(self, instance):
         # Prevent deletion of system roles
@@ -156,38 +186,12 @@ class RoleViewSet(viewsets.ModelViewSet):
         serializer = UserRoleSerializer(user_roles, many=True)
         return Response(serializer.data)
 
-class PermissionViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for Permission CRUD operations.
-    """
-    queryset = Permission.objects.all()
-    serializer_class = PermissionSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['resource', 'action']
-    search_fields = ['name', 'description', 'codename', 'resource', 'action']
-    ordering_fields = ['name', 'resource', 'action', 'created_at']
-    ordering = ['resource', 'action']
-    
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), HasPermissionManagementPermission()]
-    
-    @action(detail=True, methods=['get'])
-    def roles(self, request, pk=None):
-        """
-        Get all roles that have this permission.
-        """
-        permission = self.get_object()
-        roles = permission.roles.all()
-        serializer = RoleSerializer(roles, many=True)
-        return Response(serializer.data)
-
 class GroupViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Group CRUD operations.
     """
     queryset = Group.objects.all()
+    serializer_class = GroupSerializer
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
@@ -202,6 +206,17 @@ class GroupViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAuthenticated(), HasRoleManagementPermission()]
+    
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = Group.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
     
     @action(detail=True, methods=['post'])
     def add_users(self, request, pk=None):
@@ -305,19 +320,38 @@ class GroupViewSet(viewsets.ModelViewSet):
         
         return Response({'detail': _('Roles have been removed from the group.')})
 
+class UserRoleViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for UserRole CRUD operations.
+    """
+    queryset = UserRole.objects.all()
+    serializer_class = UserRoleSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = UserRole.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
+
 class ABACRuleViewSet(viewsets.ModelViewSet):
     """
     ViewSet for ABAC Rule CRUD operations.
     """
     queryset = ABACRule.objects.all()
     serializer_class = ABACRuleSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['resource', 'action', 'effect', 'is_active']
-    search_fields = ['name', 'description', 'resource', 'action']
-    ordering_fields = ['name', 'priority', 'resource', 'action', 'created_at']
-    ordering = ['priority']
-    
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), HasPermissionManagementPermission()]
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = ABACRule.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)

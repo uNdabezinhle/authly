@@ -6,6 +6,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseU
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from phonenumber_field.modelfields import PhoneNumberField
+from tenants.models import Tenant
 
 class UserManager(BaseUserManager):
     """
@@ -42,6 +43,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     Custom User model with email as the unique identifier.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='users',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
     email = models.EmailField(_('email address'), unique=True)
     username = models.CharField(_('username'), max_length=150, unique=True, blank=True, null=True)
     first_name = models.CharField(_('first name'), max_length=150, blank=True)
@@ -185,6 +194,14 @@ class TwoFactorDevice(models.Model):
     Model for storing two-factor authentication device information.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='two_factor_devices',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='two_factor_devices')
     name = models.CharField(_('device name'), max_length=100)
     type = models.CharField(_('device type'), max_length=20, choices=(
@@ -211,6 +228,14 @@ class RefreshToken(models.Model):
     Model for storing refresh tokens.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='refresh_tokens',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='refresh_tokens')
     token = models.CharField(_('token'), max_length=550, unique=True)
     created_at = models.DateTimeField(_('created at'), auto_now_add=True)

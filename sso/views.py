@@ -444,3 +444,44 @@ class SSOCallbackAPIView(APIView):
             'user': UserSerializer(user).data,
             'redirect_to': redirect_to
         })
+
+class IdentityProviderViewSet(viewsets.ModelViewSet):
+    queryset = IdentityProvider.objects.all()
+    serializer_class = IdentityProviderSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = IdentityProvider.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
+
+class SSOUserMappingViewSet(viewsets.ModelViewSet):
+    queryset = SSOUserMapping.objects.all()
+    serializer_class = SSOUserMappingSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = SSOUserMapping.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(tenant=tenant)
+
+class SSOSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = SSOSession.objects.all()
+    serializer_class = SSOSessionSerializer
+
+    def get_queryset(self):
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = SSOSession.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs

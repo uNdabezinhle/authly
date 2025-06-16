@@ -75,11 +75,14 @@ class OAuth2ClientViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
     
     def get_queryset(self):
-        # Regular users can only see their own clients
+        # Only show clients for the current user's tenant
+        tenant = getattr(self.request.user, 'tenant', None)
+        qs = OAuth2Client.objects.all()
+        if tenant:
+            qs = qs.filter(tenant=tenant)
         if not self.request.user.is_staff:
-            return OAuth2Client.objects.filter(user=self.request.user)
-        # Admins can see all clients
-        return OAuth2Client.objects.all()
+            qs = qs.filter(user=self.request.user)
+        return qs
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -96,8 +99,8 @@ class OAuth2ClientViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated(), HasOAuth2ManagementPermission()]
     
     def perform_create(self, serializer):
-        # Set the user to the current user
-        serializer.save(user=self.request.user)
+        tenant = getattr(self.request.user, 'tenant', None)
+        serializer.save(user=self.request.user, tenant=tenant)
     
     @action(detail=False, methods=['get'])
     def me(self, request):

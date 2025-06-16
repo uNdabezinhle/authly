@@ -4,6 +4,7 @@ import uuid
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from tenants.models import Tenant
 
 User = get_user_model()
 
@@ -19,6 +20,14 @@ class IdentityProvider(models.Model):
     )
     
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='identity_providers',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
     name = models.CharField(_('name'), max_length=255)
     description = models.TextField(_('description'), blank=True)
     protocol = models.CharField(_('protocol'), max_length=10, choices=PROTOCOL_CHOICES)
@@ -64,8 +73,22 @@ class SSOUserMapping(models.Model):
     Model for mapping external user identities to local users.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='sso_user_mappings',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sso_mappings')
-    identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE, related_name='user_mappings')
+    identity_provider = models.ForeignKey(
+        IdentityProvider, 
+        on_delete=models.CASCADE, 
+        related_name='user_mappings',
+        null=True, 
+        blank=True, 
+    )
     
     # External identifiers
     external_id = models.CharField(_('external ID'), max_length=255)
@@ -98,7 +121,16 @@ class SSOSession(models.Model):
     Model for tracking SSO authentication sessions.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user_mapping = models.ForeignKey(SSOUserMapping, on_delete=models.CASCADE, related_name='sessions')
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.CASCADE,
+        related_name='sso_sessions',
+        null=True,
+        blank=True,
+        verbose_name=_('tenant')
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    identity_provider = models.ForeignKey(IdentityProvider, on_delete=models.CASCADE)
     
     # Session data
     session_id = models.CharField(_('session ID'), max_length=255, unique=True)

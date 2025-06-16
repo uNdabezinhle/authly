@@ -190,10 +190,12 @@ class AuditMiddleware(MiddlewareMixin):
         
         # Create the log entry
         try:
+            tenant = getattr(request.user, 'tenant', None) if hasattr(request, 'user') and request.user.is_authenticated else None
             AuditLog.objects.create(
                 event_type=event_type,
                 category=category,
                 user=request.user if hasattr(request, 'user') and request.user.is_authenticated else None,
+                tenant=tenant,  # Add tenant to log
                 ip_address=request.audit_info.get('ip_address'),
                 user_agent=request.audit_info.get('user_agent'),
                 details=log_details,

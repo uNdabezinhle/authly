@@ -8,11 +8,13 @@ class IdentityProviderSerializer(serializers.ModelSerializer):
     """
     Serializer for the IdentityProvider model.
     """
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
+
     class Meta:
         model = IdentityProvider
         fields = [
-            'id', 'name', 'description', 'protocol', 
-            'is_active', 'created_at', 'updated_at'
+            'id', 'tenant', 'name', 'protocol', 'metadata_url',
+            'client_id', 'client_secret', 'is_active', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -20,13 +22,14 @@ class IdentityProviderDetailSerializer(serializers.ModelSerializer):
     """
     Detailed serializer for the IdentityProvider model including config details.
     """
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
     user_count = serializers.SerializerMethodField()
     
     class Meta:
         model = IdentityProvider
         fields = [
-            'id', 'name', 'description', 'protocol', 
-            'is_active', 'config', 'created_at', 'updated_at',
+            'id', 'tenant', 'name', 'protocol', 'metadata_url',
+            'client_id', 'client_secret', 'is_active', 'created_at', 'updated_at',
             'user_count'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'user_count']
@@ -38,15 +41,16 @@ class SSOUserMappingSerializer(serializers.ModelSerializer):
     """
     Serializer for the SSOUserMapping model.
     """
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
     identity_provider_name = serializers.CharField(source='identity_provider.name', read_only=True)
     
     class Meta:
         model = SSOUserMapping
         fields = [
-            'id', 'user', 'user_email', 'identity_provider', 
+            'id', 'tenant', 'user', 'user_email', 'identity_provider', 
             'identity_provider_name', 'external_id', 'external_email',
-            'external_username', 'created_at', 'updated_at', 'last_login'
+            'created_at', 'last_login'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'last_login']
 
@@ -54,15 +58,15 @@ class SSOSessionSerializer(serializers.ModelSerializer):
     """
     Serializer for the SSOSession model.
     """
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
     user_email = serializers.EmailField(source='user_mapping.user.email', read_only=True)
     identity_provider_name = serializers.CharField(source='user_mapping.identity_provider.name', read_only=True)
     
     class Meta:
         model = SSOSession
         fields = [
-            'id', 'user_mapping', 'user_email', 'identity_provider_name',
-            'session_id', 'started_at', 'expires_at', 'is_active',
-            'logged_out_at', 'ip_address', 'user_agent'
+            'id', 'tenant', 'user', 'identity_provider', 'session_key',
+            'started_at', 'expires_at', 'logged_out_at', 'is_active'
         ]
         read_only_fields = fields
 

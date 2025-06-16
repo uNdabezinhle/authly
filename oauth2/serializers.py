@@ -10,6 +10,7 @@ class OAuth2ClientSerializer(serializers.ModelSerializer):
     Serializer for the OAuth2Client model.
     """
     user_email = serializers.SerializerMethodField()
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
     
     class Meta:
         model = OAuth2Client
@@ -33,6 +34,7 @@ class OAuth2ClientCreateSerializer(serializers.ModelSerializer):
     Serializer for creating a new OAuth2 client.
     """
     client_secret = serializers.CharField(read_only=True)
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
     
     class Meta:
         model = OAuth2Client
@@ -73,6 +75,7 @@ class OAuth2ClientDetailSerializer(serializers.ModelSerializer):
     """
     user_email = serializers.SerializerMethodField()
     active_tokens_count = serializers.SerializerMethodField()
+    tenant = serializers.UUIDField(source='tenant.id', read_only=True)
     
     class Meta:
         model = OAuth2Client

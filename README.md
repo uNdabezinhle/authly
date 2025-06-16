@@ -27,7 +27,7 @@ Authly is a comprehensive authentication and authorization system built with Dja
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/authly.git
+   git clone https://github.com/undabezinhle/authly.git
    cd authly
    ```
 
@@ -316,5 +316,6 @@ To configure an OpenID Connect provider:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.#   a u t h l y  
+Contributions are welcome! Please feel free to submit a Pull Request.#   a u t h l y 
+ 
  
