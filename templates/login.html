@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block content %}
+<div class="sso-login-container">
+    <div class="card">
+        <div class="card-header">
+            <h3>{% trans "Log in with" %} {{ provider.name }}</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'sso-login-ldap' %}">
+                {% csrf_token %}
+                <input type="hidden" name="provider_id" value="{{ provider.id }}">
+                <input type="hidden" name="next" value="{{ next }}">
+                
+                {% if error %}
+                <div class="alert alert-danger">
+                    {{ error }}
+                </div>
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="username">{% trans "Username" %}</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">{% trans "Password" %}</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                
+                <div class="form-group mt-4">
+                    <button type="submit" class="btn btn-primary btn-block">{% trans "Log In" %}</button>
+                </div>
+                
+                <div class="form-group mt-3 text-center">
+                    <a href="{% url 'auth-login' %}">{% trans "Back to Login Options" %}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

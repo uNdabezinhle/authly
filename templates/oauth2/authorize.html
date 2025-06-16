@@ -1,0 +1,245 @@
+{# templates/oauth2/authorize.html #}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorize Application - Authly</title>
+    <style>
+        :root {
+            --primary-color: #4a6bdf;
+            --primary-hover: #3a5bcf;
+            --secondary-color: #f5f7ff;
+            --error-color: #e53935;
+            --success-color: #43a047;
+            --gray-light: #f5f5f5;
+            --gray: #e0e0e0;
+            --gray-dark: #757575;
+            --text-color: #333333;
+            --white: #ffffff;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            background-color: var(--secondary-color);
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+        
+        h1 {
+            font-size: 24px;
+            margin: 0 0 10px 0;
+        }
+        
+        h2 {
+            font-size: 18px;
+            font-weight: normal;
+            margin: 0;
+            color: var(--gray-dark);
+        }
+        
+        .client-info {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: var(--gray-light);
+            border-radius: 6px;
+        }
+        
+        .client-logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            border-radius: 6px;
+        }
+        
+        .client-name {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .client-description {
+            color: var(--gray-dark);
+            font-size: 14px;
+        }
+        
+        .scopes {
+            margin: 20px 0;
+        }
+        
+        .scope-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: var(--gray-light);
+            border-radius: 6px;
+        }
+        
+        .scope-name {
+            font-weight: bold;
+        }
+        
+        .scope-description {
+            font-size: 14px;
+            color: var(--gray-dark);
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .btn-secondary {
+            background-color: var(--gray);
+            color: var(--text-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--gray-dark);
+            color: var(--white);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--gray-dark);
+        }
+        
+        .footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="/static/logo.png" alt="Authly Logo" class="logo">
+            <h1>Authorize Application</h1>
+            <h2>The application wants to access your account</h2>
+        </div>
+        
+        <div class="client-info">
+            {% if client.logo_url %}
+                <img src="{{ client.logo_url }}" alt="{{ client.name }} Logo" class="client-logo">
+            {% else %}
+                <img src="/static/app-default.png" alt="App Logo" class="client-logo">
+            {% endif %}
+            <div>
+                <div class="client-name">{{ client.name }}</div>
+                <div class="client-description">{{ client.description }}</div>
+            </div>
+        </div>
+        
+        <p>The application is requesting permission to:</p>
+        
+        <div class="scopes">
+            {% for scope in scopes %}
+                <div class="scope-item">
+                    <div class="scope-name">
+                        {% if scope == 'openid' %}
+                            View your basic profile information
+                        {% elif scope == 'email' %}
+                            View your email address
+                        {% elif scope == 'profile' %}
+                            View your profile details
+                        {% else %}
+                            {{ scope }}
+                        {% endif %}
+                    </div>
+                    <div class="scope-description">
+                        {% if scope == 'openid' %}
+                            Includes your name and user ID
+                        {% elif scope == 'email' %}
+                            Allows the app to see your email address
+                        {% elif scope == 'profile' %}
+                            Includes name, picture, and other profile information
+                        {% endif %}
+                    </div>
+                </div>
+            {% empty %}
+                <div class="scope-item">
+                    <div class="scope-name">Basic account access</div>
+                    <div class="scope-description">The application did not request any specific permissions</div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <form method="post" action="{% url 'oauth2-authorize' %}">
+            {% csrf_token %}
+            
+            {% for key, value in params.items %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
+            
+            <div class="buttons">
+                <button type="submit" name="consent" value="no" class="btn btn-secondary">Deny</button>
+                <button type="submit" name="consent" value="yes" class="btn btn-primary">Allow</button>
+            </div>
+        </form>
+        
+        <div class="footer">
+            <p>By approving, you allow this app to use your information in accordance with their 
+               {% if client.privacy_policy_url %}
+                   <a href="{{ client.privacy_policy_url }}" target="_blank">privacy policy</a>
+               {% else %}
+                   privacy policy
+               {% endif %}
+               and 
+               {% if client.terms_of_service_url %}
+                   <a href="{{ client.terms_of_service_url }}" target="_blank">terms of service</a>.
+               {% else %}
+                   terms of service.
+               {% endif %}
+            </p>
+        </div>
+    </div>
+</body>
+</html>
