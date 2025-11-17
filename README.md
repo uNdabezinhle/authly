@@ -1,320 +1,650 @@
-# Authly Authentication System
+# 🔐 Authly API - Enterprise Identity & Access Management Platform
 
-Authly is a comprehensive authentication and authorization system built with Django REST Framework that provides user identity management, credential verification, and resource access control for enterprise-level applications.
+[![Python](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Django](https://img.shields.io/badge/django-4.2+-green.svg)](https://djangoproject.com/)
+[![PostgreSQL](https://img.shields.io/badge/postgresql-12+-blue.svg)](https://postgresql.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Features
+Enterprise-grade multi-tenant Django REST API for Identity & Access Management. Provides authentication, authorization, user management, billing, and comprehensive audit capabilities with PostgreSQL schema-based tenant isolation.
 
-- **Security**: Robust authentication and authorization mechanisms to protect sensitive data
-- **Multiple Authentication Methods**: Local, social, 2FA, passwordless, API key, and SSO support
-- **Role-Based Access Control (RBAC)**: Flexible permission system with role hierarchies
-- **Attribute-Based Access Control (ABAC)**: Rule-based engine for complex authorization policies
-- **OAuth2 & OpenID Connect**: Standards-compliant implementation for secure API access and authentication
-- **API Key Management**: Create and manage API keys for service-to-service authentication
-- **Token Management**: JWT-based secure token handling with configurable expiration policies
-- **Password Management**: Password policies, secure storage, and reset functionality
-- **Audit Logging**: Comprehensive logging of all authentication and authorization events
-- **Customizable**: Extensive branding and customization options
+## 🌟 Features
 
-## Installation
+### 🔐 **Core Identity & Access Management**
+- **Multi-tenant Architecture**: PostgreSQL schema-based tenant isolation
+- **JWT Authentication**: Secure token-based authentication with refresh tokens
+- **Role-Based Access Control (RBAC)**: Granular permissions and role management
+- **Multi-Factor Authentication**: TOTP-based 2FA support
+- **API Key Management**: Service-to-service authentication
+- **Comprehensive Audit Logging**: Full activity tracking and compliance
 
-### Prerequisites
+### 💳 **Enterprise Billing & Subscriptions**
+- **Stripe Integration**: Complete payment processing
+- **Subscription Management**: Flexible billing plans and cycles
+- **Usage Tracking**: Metered billing and usage analytics
+- **Invoice Management**: Automated invoice generation and delivery
+- **Payment Methods**: Multiple payment method support
 
-- Python 3.8 or higher
-- PostgreSQL (recommended) or another database supported by Django
-- Virtual environment (recommended)
+### 🔗 **Advanced Integration**
+- **Webhook System**: Real-time event notifications
+- **Federation Support**: SAML/OIDC integration capabilities
+- **Scoped Tokens**: Fine-grained API access control
+- **Custom Branding**: Tenant-specific customization
+- **Data Export**: GDPR-compliant data portability
 
-### Setup
+### 📊 **Enterprise Features**
+- **OpenAPI Documentation**: Interactive API documentation
+- **Rate Limiting**: API protection and abuse prevention
+- **Background Tasks**: Celery-based asynchronous processing
+- **Monitoring**: Prometheus metrics and Sentry integration
+- **Cloud Storage**: S3-compatible file storage
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/authly.git
-   cd authly
-   ```
+## 🛠 Technology Stack
 
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv authly-env
-   source authly-env/bin/activate  # On Windows: authly-env\Scripts\activate
-   ```
+- **Backend**: Django 4.2+ with Django REST Framework
+- **Database**: PostgreSQL 12+ with tenant schemas
+- **Authentication**: JWT with SimpleJWT
+- **Caching**: Redis for sessions and background tasks
+- **Task Queue**: Celery with Redis broker
+- **Payments**: Stripe API integration
+- **Documentation**: drf-spectacular (OpenAPI 3.0)
+- **Monitoring**: Sentry, Prometheus, Django Debug Toolbar
 
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 📋 Prerequisites
 
-4. Create a `.env` file from the template:
-   ```bash
-   cp .env.example .env
-   ```
+Before setting up Authly API, ensure you have the following installed:
 
-5. Edit the `.env` file with your configuration settings.
+- **Python 3.9+** (Python 3.10+ recommended)
+- **PostgreSQL 12+** with superuser access
+- **Redis 6.0+** for caching and task queue
+- **Git** for version control
 
-6. Create the database:
-   ```bash
-   # For PostgreSQL
-   createdb authly
-   ```
+### Optional but Recommended
+- **Docker & Docker Compose** for containerized development
+- **Node.js & npm** for frontend development tools
+- **pgAdmin** for PostgreSQL management
 
-7. Run migrations:
-   ```bash
-   python manage.py migrate
-   ```
+## 🚀 Quick Start
 
-8. Create a superuser:
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-9. Create required directories:
-   ```bash
-   mkdir -p logs media static
-   ```
-
-10. Collect static files:
-    ```bash
-    python manage.py collectstatic
-    ```
-
-## Running the Server
-
-### Development
+### 1. Clone the Repository
 
 ```bash
+git clone https://github.com/your-org/authly-api.git
+cd authly-api
+```
+
+### 2. Set Up Python Environment
+
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On Linux/macOS:
+source .venv/bin/activate
+# On Windows:
+.venv\Scripts\activate
+
+# Upgrade pip
+pip install --upgrade pip
+```
+
+### 3. Install Dependencies
+
+```bash
+# Install production dependencies
+pip install -r requirements.txt
+
+# For development (optional)
+pip install -r requirements-dev.txt  # If you have dev requirements
+```
+
+### 4. Set Up PostgreSQL Database
+
+```bash
+# Connect to PostgreSQL as superuser
+sudo -u postgres psql
+
+# Create database and user
+CREATE DATABASE authly_api;
+CREATE USER authly_user WITH PASSWORD 'your-secure-password';
+GRANT ALL PRIVILEGES ON DATABASE authly_api TO authly_user;
+ALTER USER authly_user CREATEDB;  # Required for django-tenants
+\q
+```
+
+### 5. Configure Environment Variables
+
+Create a `.env` file in the project root:
+
+```bash
+cp .env.example .env  # If example exists, or create manually
+```
+
+Add the following essential configuration to your `.env` file:
+
+```bash
+# =============================================================================
+# DJANGO CORE SETTINGS
+# =============================================================================
+DJANGO_SECRET_KEY=your-super-secret-key-change-in-production-minimum-50-chars
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,*.authly.com,*.yourdomain.com
+DJANGO_ENVIRONMENT=development
+
+# =============================================================================
+# DATABASE CONFIGURATION
+# =============================================================================
+POSTGRES_DB=authly_api
+POSTGRES_USER=authly_user
+POSTGRES_PASSWORD=your-secure-password
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+
+# =============================================================================
+# REDIS & CELERY
+# =============================================================================
+REDIS_URL=redis://localhost:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# =============================================================================
+# JWT CONFIGURATION
+# =============================================================================
+JWT_ISSUER=authly-api
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_LIFETIME=15  # minutes
+JWT_REFRESH_TOKEN_LIFETIME=10080  # minutes (7 days)
+JWT_ROTATE_REFRESH_TOKENS=True
+
+# =============================================================================
+# EMAIL CONFIGURATION
+# =============================================================================
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+DEFAULT_FROM_EMAIL=noreply@authly.com
+SUPPORT_EMAIL=support@authly.com
+
+# For production, use SendGrid:
+# EMAIL_BACKEND=anymail.backends.sendgrid.EmailBackend
+# SENDGRID_API_KEY=your-sendgrid-api-key
+
+# =============================================================================
+# BILLING & STRIPE (Optional)
+# =============================================================================
+BILLING_ENABLED=True
+STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-publishable-key
+STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
+STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
+
+# =============================================================================
+# FEATURE FLAGS
+# =============================================================================
+FEATURE_SSO_ENABLED=True
+FEATURE_MFA_ENABLED=True
+FEATURE_WEBHOOKS_ENABLED=True
+FEATURE_API_KEYS_ENABLED=True
+FEATURE_AUDIT_LOGS_ENABLED=True
+FEATURE_SCOPED_TOKENS_ENABLED=True
+FEATURE_TENANT_BRANDING_ENABLED=True
+
+# =============================================================================
+# SECURITY SETTINGS
+# =============================================================================
+SECURE_SSL_REDIRECT=False  # Set to True in production
+CSRF_COOKIE_SECURE=False  # Set to True in production
+SESSION_COOKIE_SECURE=False  # Set to True in production
+```
+
+### 6. Initialize Database
+
+```bash
+# Create and apply migrations for shared schema
+python manage.py makemigrations
+python manage.py migrate_schemas --shared
+
+# Create migrations for tenant apps
+python manage.py makemigrations tenants users authentication roles api_keys webhooks audit federation tokens customization billing
+
+# Apply all migrations
+python manage.py migrate_schemas
+```
+
+### 7. Create Superuser
+
+```bash
+# Create Django superuser (for public schema)
+python manage.py createsuperuser
+```
+
+### 8. Create Your First Tenant
+
+```bash
+# Start Django shell
+python manage.py shell
+```
+
+In the Django shell, create a tenant:
+
+```python
+from apps.tenants.models import Tenant, Domain
+
+# Create tenant
+tenant = Tenant(
+    name="Demo Company",
+    schema_name="demo",  # Must be lowercase, alphanumeric
+    description="Demo tenant for testing"
+)
+tenant.save()
+
+# Create domain for tenant
+domain = Domain(
+    domain="demo.localhost",  # For local development
+    tenant=tenant,
+    is_primary=True
+)
+domain.save()
+
+print(f"Tenant created: {tenant.name} ({tenant.schema_name})")
+print(f"Domain: {domain.domain}")
+
+# Exit shell
+exit()
+```
+
+### 9. Start Development Server
+
+```bash
+# Start Redis (in a separate terminal)
+redis-server
+
+# Start Celery worker (in a separate terminal)
+celery -A authly_api worker --loglevel=info
+
+# Start Django development server
 python manage.py runserver
 ```
 
-### Production
+## 🌐 Accessing the API
 
-For production deployments, we recommend using Gunicorn with Nginx:
+Once the server is running, you can access:
+
+### API Endpoints
+- **API Root**: http://localhost:8000/api/
+- **Interactive Documentation**: http://localhost:8000/api/docs/
+- **OpenAPI Schema**: http://localhost:8000/api/schema/
+- **Admin Interface**: http://localhost:8000/admin/
+
+### Tenant-Specific Access
+- **Demo Tenant**: http://demo.localhost:8000/api/
+- **Tenant API Docs**: http://demo.localhost:8000/api/docs/
+
+### Test API Connectivity
 
 ```bash
-gunicorn authly.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120
+# Test public endpoints
+curl http://localhost:8000/api/
+
+# Test tenant endpoints (after creating demo tenant)
+curl -H "Host: demo.localhost" http://localhost:8000/api/users/
+
+# Authentication test
+curl -X POST http://demo.localhost:8000/api/auth/login/ \
+     -H "Content-Type: application/json" \
+     -d '{"email": "user@example.com", "password": "password"}'
 ```
 
-## API Documentation
+## 🔧 Development Setup
 
-Once the server is running, you can access the API documentation at:
+### Enable Development Tools
 
+Add to your `.env`:
+
+```bash
+# Development settings
+DEV_TOOLBAR_ENABLED=True
+DEBUG_LOG_SQL=False  # Set to True to see SQL queries
 ```
-http://localhost:8000/docs/
+
+### Install Development Dependencies
+
+```bash
+# If you have a separate dev requirements file
+pip install pytest pytest-django pytest-cov black isort flake8
+pip install django-debug-toolbar ipython
+
+# Add to INSTALLED_APPS in development
+# 'debug_toolbar',  # Already configured in settings.py
 ```
 
-## Key Endpoints
+### Run Tests
+
+```bash
+# Run all tests
+python manage.py test
+
+# Run specific app tests
+python manage.py test apps.users
+python manage.py test apps.authentication
+
+# Run with coverage (if pytest-cov installed)
+pytest --cov=apps --cov-report=html
+```
+
+## 🐳 Docker Development
+
+### Using Docker Compose
+
+```bash
+# Start all services
+docker-compose up -d postgres redis pgadmin
+
+# Check services
+docker-compose ps
+
+# View logs
+docker-compose logs -f postgres
+```
+
+### Service Access
+- **pgAdmin**: http://localhost:5050 (admin@admin.com / admin)
+- **PostgreSQL**: localhost:5432
+- **Redis**: localhost:6379
+
+## 🚀 Production Deployment
+
+### Environment Configuration
+
+Update your `.env` for production:
+
+```bash
+# Production settings
+DJANGO_DEBUG=False
+DJANGO_ENVIRONMENT=production
+DJANGO_ALLOWED_HOSTS=yourdomain.com,*.yourdomain.com
+
+# Security settings
+SECURE_SSL_REDIRECT=True
+CSRF_COOKIE_SECURE=True
+SESSION_COOKIE_SECURE=True
+
+# Database (use environment-specific values)
+POSTGRES_HOST=your-db-host
+POSTGRES_PASSWORD=your-secure-production-password
+
+# Email (use real email service)
+EMAIL_BACKEND=anymail.backends.sendgrid.EmailBackend
+SENDGRID_API_KEY=your-production-sendgrid-key
+
+# Monitoring
+SENTRY_DSN=your-sentry-dsn
+DATADOG_API_KEY=your-datadog-key
+```
+
+### Deploy with Gunicorn
+
+```bash
+# Install gunicorn
+pip install gunicorn
+
+# Collect static files
+python manage.py collectstatic --noinput
+
+# Run with gunicorn
+gunicorn authly_api.wsgi:application \
+    --bind 0.0.0.0:8000 \
+    --workers 3 \
+    --timeout 30 \
+    --keep-alive 2 \
+    --max-requests 1000 \
+    --max-requests-jitter 100
+```
+
+### Database Migration in Production
+
+```bash
+# Apply migrations (shared schema first)
+python manage.py migrate_schemas --shared
+
+# Apply to all tenant schemas
+python manage.py migrate_schemas
+
+# Create tenants via management command or API
+```
+
+## 📚 API Usage Examples
 
 ### Authentication
 
-- `POST /api/auth/login/`: User login
-- `POST /api/auth/logout/`: User logout
-- `POST /api/auth/register/`: Register a new user
-- `POST /api/auth/password/reset/`: Request password reset
-- `POST /api/auth/password/reset/confirm/`: Confirm password reset
-- `POST /api/auth/2fa/enable/`: Enable two-factor authentication
-- `POST /api/auth/2fa/disable/`: Disable two-factor authentication
-- `POST /api/auth/2fa/verify/`: Verify two-factor authentication code
-- `GET /api/auth/session/`: Check session validity
-- `POST /api/auth/refresh/`: Refresh access token
+```bash
+# Register new user (tenant-specific)
+curl -X POST http://demo.localhost:8000/api/users/register/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "user@example.com",
+       "password": "SecurePass123!",
+       "first_name": "John",
+       "last_name": "Doe"
+     }'
 
-### User Management
+# Login
+curl -X POST http://demo.localhost:8000/api/auth/login/ \
+     -H "Content-Type: application/json" \
+     -d '{
+       "email": "user@example.com",
+       "password": "SecurePass123!"
+     }'
 
-- `GET /api/users/`: List users
-- `POST /api/users/`: Create a new user
-- `GET /api/users/{id}/`: Get user details
-- `PUT /api/users/{id}/`: Update a user
-- `DELETE /api/users/{id}/`: Delete a user
+# Use JWT token in subsequent requests
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     http://demo.localhost:8000/api/users/profile/
+```
 
-### Role Management
+### Using the Python SDK
 
-- `GET /api/roles/roles/`: List roles
-- `POST /api/roles/roles/`: Create a new role
-- `GET /api/roles/roles/{id}/`: Get role details
-- `PUT /api/roles/roles/{id}/`: Update a role
-- `DELETE /api/roles/roles/{id}/`: Delete a role
-- `GET /api/roles/roles/{id}/permissions/`: Get role permissions
-- `POST /api/roles/roles/{id}/add_permissions/`: Add permissions to a role
-- `POST /api/roles/roles/{id}/remove_permissions/`: Remove permissions from a role
+```python
+from authly_client_sdk import AuthlyClient
 
-### API Key Management
+# Initialize client
+client = AuthlyClient(
+    base_url="http://demo.localhost:8000",
+    api_key="your-api-key"  # Optional, can use username/password
+)
 
-- `GET /api/api-keys/`: List API keys
-- `POST /api/api-keys/`: Create a new API key
-- `GET /api/api-keys/{id}/`: Get API key details
-- `DELETE /api/api-keys/{id}/`: Delete an API key
-- `POST /api/api-keys/{id}/revoke/`: Revoke an API key
+# Authenticate
+client.authenticate("user@example.com", "password")
 
-### OAuth2
+# Use API methods
+users = client.get_users()
+profile = client.get_user_profile()
+roles = client.get_roles()
 
-- `GET /api/oauth2/authorize/`: OAuth2 authorization endpoint
-- `POST /api/oauth2/token/`: OAuth2 token endpoint
-- `GET /api/oauth2/userinfo/`: OpenID Connect userinfo endpoint
-- `GET /api/oauth2/.well-known/jwks.json`: JSON Web Key Set endpoint
+# Create API key
+api_key = client.create_api_key(
+    name="Integration Key",
+    permissions=["users.read", "roles.read"]
+)
 
+# Billing operations (if enabled)
+plans = client.get_billing_plans()
+subscription = client.create_subscription("professional", "monthly")
+```
 
-# SSO and Active Directory Integration for Authly
+## 📖 API Documentation
 
-## Overview
+The API provides comprehensive documentation:
 
-Authly now includes comprehensive Single Sign-On (SSO) and Active Directory integration capabilities, allowing enterprises to leverage their existing identity infrastructure. The following protocols are supported:
+### Interactive Documentation
+- **Swagger UI**: http://localhost:8000/api/docs/
+- **ReDoc**: http://localhost:8000/api/redoc/
 
-- **SAML 2.0**: Industry standard for web-based authentication and authorization
-- **OpenID Connect (OIDC)**: Modern identity layer on top of OAuth 2.0
-- **LDAP/Active Directory**: Traditional enterprise directory services
-- **OAuth 2.0**: For integration with other OAuth 2.0 providers
+### Key Endpoint Categories
 
-## Features
+- **/api/auth/** - Authentication & authorization
+- **/api/users/** - User management
+- **/api/roles/** - Role and permission management
+- **/api/api-keys/** - API key management
+- **/api/billing/** - Subscription and billing
+- **/api/webhooks/** - Webhook configuration
+- **/api/audit/** - Audit logs and activity
+- **/api/federation/** - SSO and federation
+- **/api/tokens/** - Token management
+- **/api/tenants/** - Tenant management (public schema)
 
-- **Multiple Identity Providers**: Configure and manage multiple IdPs simultaneously
-- **User Mapping**: Automatic mapping between external identities and local users
-- **Just-in-time Provisioning**: Automatically create users when they first authenticate via SSO
-- **Session Management**: Track and manage SSO sessions
-- **Attribute Mapping**: Customizable mapping of IdP attributes to user properties
-- **Role Mapping**: Map IdP groups/roles to local roles (coming soon)
+## 🔒 Security Features
 
-## Configuration
+### Authentication & Authorization
+- JWT tokens with short expiration and refresh rotation
+- Multi-factor authentication with TOTP
+- Role-based access control with granular permissions
+- API key authentication for service accounts
+- Rate limiting on authentication endpoints
 
-### SAML 2.0
+### Data Protection
+- PostgreSQL schema-based tenant isolation
+- Encrypted password storage with Django's PBKDF2
+- Secure session management
+- CSRF protection for web requests
+- XSS protection headers
 
-To configure a SAML 2.0 identity provider:
+### Compliance & Audit
+- Comprehensive audit logging
+- GDPR-compliant data export and deletion
+- SOC 2 compliance features
+- Automated security headers
+- Data retention policies
 
-1. Create a new `IdentityProvider` with protocol `saml`
-2. Configure the following in the `config` JSON field:
-   ```json
-   {
-     "service_provider": {
-       "entity_id": "https://your-authly-domain/api/sso/saml/metadata/",
-       "acs_url": "https://your-authly-domain/api/sso/callback/PROVIDER_ID/",
-       "sls_url": "https://your-authly-domain/api/sso/logout/PROVIDER_ID/",
-       "x509cert": "YOUR_SP_CERTIFICATE",
-       "private_key": "YOUR_SP_PRIVATE_KEY"
-     },
-     "identity_provider": {
-       "entity_id": "https://idp.example.com/metadata",
-       "sso_url": "https://idp.example.com/sso",
-       "slo_url": "https://idp.example.com/slo",
-       "x509cert": "IDP_CERTIFICATE"
-     },
-     "attribute_mapping": {
-       "email": "email",
-       "first_name": "firstName",
-       "last_name": "lastName",
-       "username": "userName"
-     }
-   }
-   ```
-3. Replace `PROVIDER_ID` with the UUID of the created provider
+## 🧪 Testing
 
-### LDAP/Active Directory
+### Running Tests
 
-To configure LDAP/Active Directory:
+```bash
+# Run all tests
+python manage.py test
 
-1. Create a new `IdentityProvider` with protocol `ldap`
-2. Configure the following in the `config` JSON field:
-   ```json
-   {
-     "server_uri": "ldap://ad.example.com",
-     "bind_dn": "CN=ServiceAccount,OU=ServiceAccounts,DC=example,DC=com",
-     "bind_password": "ServiceAccountPassword",
-     "base_dn": "DC=example,DC=com",
-     "search_filter": "(sAMAccountName={username})",
-     "attributes": ["mail", "givenName", "sn", "displayName", "objectGUID", "sAMAccountName"],
-     "email_attribute": "mail",
-     "id_attribute": "objectGUID",
-     "use_tls": true,
-     "default_domain": "example.com"
-   }
-   ```
+# Run with verbose output
+python manage.py test --verbosity=2
 
-### OpenID Connect
+# Run specific test modules
+python manage.py test apps.users.tests
+python manage.py test apps.authentication.tests.test_login
 
-To configure an OpenID Connect provider:
+# Run with coverage (if pytest installed)
+pytest --cov=apps --cov-report=html --cov-report=term
+```
 
-1. Create a new `IdentityProvider` with protocol `oidc`
-2. Configure the following in the `config` JSON field:
-   ```json
-   {
-     "client_id": "your-client-id",
-     "client_secret": "your-client-secret",
-     "authorization_endpoint": "https://idp.example.com/auth",
-     "token_endpoint": "https://idp.example.com/token",
-     "userinfo_endpoint": "https://idp.example.com/userinfo",
-     "redirect_uri": "https://your-authly-domain/api/sso/callback/PROVIDER_ID/",
-     "scope": "openid email profile",
-     "field_mapping": {
-       "first_name": "given_name",
-       "last_name": "family_name",
-       "name": "name",
-       "username": "preferred_username"
-     }
-   }
-   ```
-3. Replace `PROVIDER_ID` with the UUID of the created provider
+### Test Database
 
-## API Endpoints
+Tests automatically use a separate test database. For tenant-specific tests:
 
-### Management Endpoints
+```python
+from django.test import TestCase
+from django_tenants.test.cases import TenantTestCase
+from apps.tenants.models import Tenant
 
-- `GET /api/sso/providers/`: List all identity providers
-- `POST /api/sso/providers/`: Create a new identity provider
-- `GET /api/sso/providers/{id}/`: Get a specific identity provider
-- `PUT/PATCH /api/sso/providers/{id}/`: Update a identity provider
-- `DELETE /api/sso/providers/{id}/`: Delete a identity provider
-- `GET /api/sso/providers/enabled/`: List all enabled identity providers
-- `POST /api/sso/providers/{id}/toggle_active/`: Enable/disable a provider
-- `GET /api/sso/mappings/`: List all user mappings
-- `GET /api/sso/sessions/`: List all SSO sessions
-- `POST /api/sso/sessions/{id}/revoke/`: Revoke a session
-- `POST /api/sso/sessions/revoke_all/`: Revoke all sessions
+class MyTenantTest(TenantTestCase):
+    def setUp(self):
+        self.tenant = Tenant(schema_name='test', name='Test Tenant')
+        self.tenant.save()
+        # Tests run in tenant context automatically
+```
 
-### Authentication Endpoints
+## 🚨 Troubleshooting
 
-- `POST /api/sso/login/init/`: Initiate SSO login flow
-- `POST /api/sso/login/ldap/`: LDAP/AD direct login
-- `GET/POST /api/sso/callback/{provider_id}/`: SSO callback handler
-- `POST /api/sso/callback/api/`: API-based SSO callback
+### Common Issues
 
-## Required Dependencies
+#### Database Connection Issues
+```bash
+# Check PostgreSQL status
+sudo systemctl status postgresql
 
-- `python-ldap`: For LDAP/Active Directory integration
-- `python3-saml`: For SAML 2.0 integration
-- `jwt`: For JWT token handling
-- `requests`: For HTTP requests to IdPs
+# Check connection
+psql -h localhost -U authly_user -d authly_api
 
-## Environment Variables
+# Reset database (development only)
+python manage.py migrate_schemas --shared
+python manage.py migrate_schemas
+```
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `LDAP_SERVER_URI` | LDAP server URI | `ldap://ldap.example.com` |
-| `LDAP_BIND_DN` | LDAP bind DN | `''` |
-| `LDAP_BIND_PASSWORD` | LDAP bind password | `''` |
-| `LDAP_USER_SEARCH_BASE` | LDAP user search base | `ou=users,dc=example,dc=com` |
-| `LDAP_GROUP_SEARCH_BASE` | LDAP group search base | `ou=groups,dc=example,dc=com` |
-| `LDAP_USE_TLS` | Enable TLS for LDAP | `False` |
-| `SSO_SESSION_DURATION` | SSO session duration in seconds | `43200` (12 hours) |
-| `SSO_ALLOWED_REDIRECT_DOMAINS` | Comma-separated domains allowed for redirects | `localhost,127.0.0.1` |
-| `SSO_DEFAULT_REDIRECT_URL` | Default URL to redirect after successful SSO | `/` |
-| `SSO_ERROR_REDIRECT_URL` | URL to redirect on SSO error | `/login` |
+#### Redis Connection Issues
+```bash
+# Check Redis status
+redis-cli ping
 
-## Security Considerations
+# Check Redis configuration
+redis-cli CONFIG GET "*"
+```
 
-- Store all credentials and certificates securely using environment variables or a secure key vault
-- Always enable TLS for LDAP connections in production
-- Validate and restrict redirect URLs to prevent open redirect vulnerabilities
-- Always validate SAML responses and JWT tokens properly
-- Use HTTPS for all communications with identity providers
-- Monitor and audit SSO activity regularly
+#### Tenant Creation Issues
+```bash
+# Ensure schema_name is lowercase and alphanumeric
+# Ensure domain is unique
+# Check tenant exists before creating domains
+```
 
-## Security Considerations
+#### Migration Issues
+```bash
+# Reset migrations (development only)
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+find . -path "*/migrations/*.pyc" -delete
+python manage.py makemigrations
+python manage.py migrate_schemas --shared
+python manage.py migrate_schemas
+```
 
-- Always use HTTPS in production
-- Regular security audits and updates
-- Follow the principle of least privilege
-- Keep dependencies updated
-- Implement rate limiting for sensitive endpoints
+### Debug Mode
 
-## License
+Enable debug logging in `.env`:
 
-[MIT License](LICENSE)
+```bash
+DJANGO_DEBUG=True
+DEBUG_LOG_SQL=True
+LOG_LEVEL=DEBUG
+```
 
-## Contributing
+### Performance Issues
 
-Contributions are welcome! Please feel free to submit a Pull Request.#   a u t h l y  
- 
+```bash
+# Check database performance
+python manage.py dbshell
+EXPLAIN ANALYZE SELECT * FROM your_query;
+
+# Monitor with django-debug-toolbar
+# Install and add to INSTALLED_APPS
+
+# Check Celery tasks
+celery -A authly_api inspect active
+```
+
+## 📞 Support
+
+### Documentation
+- **API Docs**: http://localhost:8000/api/docs/
+- **Code Documentation**: See inline docstrings
+- **Architecture**: See `CLAUDE.md` for technical details
+
+### Getting Help
+- **Issues**: Create an issue on GitHub
+- **Email**: support@authly.com
+- **Documentation**: Check the `/api/docs/` endpoint
+
+### Contributing
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Create a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Django REST Framework community
+- django-tenants contributors
+- PostgreSQL development team
+- All contributors and users
+
+---
+
+**Authly API** - Enterprise Identity & Access Management Platform
+Built with ❤️ using Django, PostgreSQL, and modern web technologies.

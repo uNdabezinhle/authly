@@ -1,0 +1,231 @@
+# docker-compose.yml – Fixed Volume Names (no prefix)
+# pgadmin_data and rainloop_data only
+
+services:
+  # PostgreSQL Database Server
+  postgres:
+    image: postgres:latest
+    container_name: csert-postgres
+    hostname: db.csert.csir.co.za
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    networks:
+      csert-network:
+        aliases:
+          - db.csert.csir.co.za
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin – Database Management UI
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: csert-pgadmin
+    hostname: db-admin.csert.csir.co.za
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@csert.csir.co.za}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-AdminPassword123!}
+      PGADMIN_CONFIG_SERVER_MODE: 'True'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      csert-network:
+        aliases:
+          - db-admin.csert.csir.co.za
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/misc/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # Redis Cache & Message Broker
+  redis:
+    image: redis:7-alpine
+    container_name: authly-redis
+    hostname: redis.authly.local
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      csert-network:
+        aliases:
+          - redis.authly.local
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Django API Server
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: authly-api
+    hostname: api.authly.local
+    restart: unless-stopped
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      POSTGRES_DB: ${POSTGRES_DB:-authly_api}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@authly.local}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+      - ./logs:/app/logs
+    networks:
+      csert-network:
+        aliases:
+          - api.authly.local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/docs/", "--max-time", "10"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  # Celery Worker
+  celery:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: authly-celery
+    hostname: celery.authly.local
+    restart: unless-stopped
+    command: celery -A authly_api worker -l info --concurrency=2 --max-tasks-per-child=1000
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-change-me-in-production}
+      POSTGRES_DB: ${POSTGRES_DB:-authly_api}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_URL: redis://redis:6379/0
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@authly.local}
+    volumes:
+      - ./media:/app/media
+      - ./logs:/app/logs
+    networks:
+      - csert-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "authly_api", "inspect", "ping", "--timeout", "10"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+
+  # Greenmail – SMTP/IMAP/POP3 Test Server
+  greenmail:
+    image: greenmail/standalone:latest
+    container_name: csert-greenmail
+    hostname: smtp.csert.csir.co.za
+    restart: unless-stopped
+    environment:
+      GREENMAIL_OPTS: >-
+        -Dgreenmail.setup.test.smtp
+        -Dgreenmail.setup.test.imap
+        -Dgreenmail.setup.test.pop3
+        -Dgreenmail.hostname=0.0.0.0
+        -Dgreenmail.auth.disabled=false
+        -Dgreenmail.verbose
+      GREENMAIL_USERS: ${GREENMAIL_USERS:-admin:admin123@csert.csir.co.za,noreply:noreply123@csert.csir.co.za}
+      JAVA_OPTS: "-Djava.net.preferIPv4Stack=true -Xmx512m"
+    ports:
+      - "3025:3025"   # SMTP
+      - "3465:3465"   # SMTPS
+      - "3587:3587"   # SMTP Submission
+      - "3143:3143"   # IMAP
+      - "3993:3993"   # IMAPS
+      - "3110:3110"   # POP3
+      - "3995:3995"   # POP3S
+      - "8080:8080"   # Web UI
+    networks:
+      csert-network:
+        aliases:
+          - smtp.csert.csir.co.za
+          - mail.csert.csir.co.za
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "3025"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # RainLoop – Lightweight Webmail Client
+  rainloop:
+    image: hardware/rainloop:latest
+    container_name: csert-rainloop
+    hostname: mail.csert.csir.co.za
+    restart: always
+    volumes:
+      - rainloop_data:/rainloop/data
+    ports:
+      - "8081:8888"
+    networks:
+      csert-network:
+        aliases:
+          - mail.csert.csir.co.za
+    depends_on:
+      greenmail:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  csert-network:
+    driver: bridge
+    name: csert-network
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:        # Database admin interface data
+    driver: local
+  redis_data:          # Redis persistence data
+    driver: local
+  rainloop_data:       # Webmail client data
+    driver: local
